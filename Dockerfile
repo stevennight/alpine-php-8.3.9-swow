@@ -1,11 +1,38 @@
-FROM php:8.3.9-fpm-alpine
+FROM hub.container.24-7to.icu/library/php:8.3.9-fpm-alpine
 
-RUN apk update \
+COPY ./etc /opt/etc
+COPY ./bin /opt/bin
+
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories \
+        && apk update \
         && apk upgrade \
         && apk add --no-cache ca-certificates \
         && update-ca-certificates 2>/dev/null || true \
         && apk add --no-cache tzdata \
         && apk add --no-cache pkgconfig gcc g++ make autoconf linux-headers \
+        # install php gd
+        && apk add zlib-dev libpng-dev libjpeg-turbo-dev freetype-dev libwebp-dev \
+        && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+        && docker-php-ext-install -j$(nproc) gd \
+        # install pdo_mysql
+        && docker-php-ext-install -j$(nproc) pdo_mysql \
+        # install redis
+        && pecl install redis-6.0.2 \
+        && docker-php-ext-enable redis \
+        # install memcached
+        && apk add libmemcached-dev openssl-dev zlib-dev \
+        && pecl install memcached-3.2.0 \
+        && docker-php-ext-enable memcached \
+        # install zip \
+        && apk add zlib-dev libzip-dev \
+        && docker-php-ext-install -j$(nproc) zip \
+        # install bcmath \
+        && docker-php-ext-install -j$(nproc) bcmath \
+        # install xdebug(dev)
+        # && pecl install xdebug-3.3.2 \
+        # && docker-php-ext-enable xdebug \
+        # workdir
+        && mkdir -p /opt/www \
         # composer
         && php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
         && php -r "if (hash_file('sha384', 'composer-setup.php') === 'dac665fdc30fdd8ec78b38b9800061b4150413ff2e3b6f88543c636f7cd84f6db9189d43a81e5503cda447da73c7e5b6') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;" \
@@ -18,22 +45,29 @@ RUN apk update \
         && ./vendor/bin/swow-builder --install \
         && cd / && rm -rf /swowinstall \
         && echo "extension=swow" > $PHP_INI_DIR/conf.d/swow.ini \
-        # nginx
+        # nginx \
+        && addgroup www \
+        && adduser -H -D -G www www\
         && apk add --no-cache nginx \
         && mkdir -p /var/log/nginx \
-        && ln -sf /dev/stdout /var/log/nginx/access.log \
-        && ln -sf /dev/stderr /var/log/nginx/error.log \
-        && echo "daemon off;" >> /etc/nginx/nginx.conf \
         && mkdir -p /etc/nginx/conf.d \
-        && echo "server { listen 80; root /opt/www;  location / { index index.php; } location ~ \.php$ { fastcgi_pass   127.0.0.1:9000; fastcgi_index  index.php; fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; include fastcgi_params; } }" > /etc/nginx/conf.d/default.conf \
+        && cp /opt/etc/nginx/nginx.conf /etc/nginx/nginx.conf \
+        && cp /opt/etc/nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf \
+        # php configure file
+        && cp /opt/etc/php-fpm/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf \
         # clean
         && apk del pkgconfig gcc g++ make autoconf linux-headers \
-        # workdir
-        && mkdir -p /opt/www
+        && rm -rf /opt/etc \
+        && rm -rf /var/cache/apk/* \
+        && rm -rf /tmp/* \
+        # entrypoint
+        && chmod +x /opt/bin/entrypoint.sh
+
 
 ENV TZ Asia/Shanghai
 
 WORKDIR /opt/www
 
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
-# ENTRYPOINT ["php", "-S", "0.0.0.0:13300"]
+ENTRYPOINT ["/opt/bin/entrypoint.sh"]
+#ENTRYPOINT ["php", "-S", "0.0.0.0:13300"]
+
