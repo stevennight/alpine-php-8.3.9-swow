@@ -20,6 +20,9 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/re
         && docker-php-ext-install -j$(nproc) gd \
         # install pdo_mysql
         && docker-php-ext-install -j$(nproc) pdo_mysql \
+        # install pdo_postgresql if need. too big. \
+        # && apk add postgresql-dev \
+        # && docker-php-ext-install -j$(nproc) pdo_pgsql \
         # install redis
         && pecl install redis-6.0.2 \
         && docker-php-ext-enable redis \
@@ -32,6 +35,11 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/re
         && docker-php-ext-install -j$(nproc) zip \
         # install bcmath \
         && docker-php-ext-install -j$(nproc) bcmath \
+        # install pcntl \
+        && docker-php-ext-install -j$(nproc) pcntl \
+        # install intl, icu, icu data \
+        && apk add icu-dev \
+        && docker-php-ext-install -j$(nproc) intl \
         # composer
         && php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
         && php -r "if (hash_file('sha384', 'composer-setup.php') === 'dac665fdc30fdd8ec78b38b9800061b4150413ff2e3b6f88543c636f7cd84f6db9189d43a81e5503cda447da73c7e5b6') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;" \
