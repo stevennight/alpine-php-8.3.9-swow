@@ -1,0 +1,11 @@
+FROM registry.cn-hongkong.aliyuncs.com/stevennight-test/alpine-php-8.3.9-swow
+
+RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini" \
+        && apk add pkgconfig gcc g++ make autoconf linux-headers \
+        # install xdebug(dev)
+        && pecl install xdebug-3.3.2 \
+        && docker-php-ext-enable xdebug \
+        && apk del pkgconfig gcc g++ make autoconf linux-headers \
+        # clean
+        && rm -rf /var/cache/apk/* \
+        && rm -rf /tmp/*
