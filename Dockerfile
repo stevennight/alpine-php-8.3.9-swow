@@ -1,9 +1,10 @@
-FROM hub.container.24-7to.icu/library/php:8.3.9-fpm-alpine
+FROM php:8.3.9-fpm-alpine
 
 COPY ./etc /opt/etc
 COPY ./bin /opt/bin
 
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories \
+RUN echo 1 \
+        # && sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories \
         && apk update \
         && apk upgrade \
         && apk add --no-cache ca-certificates \
