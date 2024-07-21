@@ -40,3 +40,6 @@ docker exec -it test sh
 ```
 docker push registry.cn-hongkong.aliyuncs.com/stevennight-test/alpine-php-8.3.9-swow:dev-latest
 ```
+
+## 环境变量
+- XDEBUG_CLIENT_HOST：xdebug 客户端地址（php.ini xdebug.client_host）
